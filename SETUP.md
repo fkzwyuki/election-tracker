@@ -132,15 +132,28 @@ GASがGitHub Actionsを起動するための鍵（Fine-grained PAT）を作り�
 
 ---
 
-## ステップ5：選挙が終わった後 ＆ 次回選挙の追加方法
+## ステップ5：来週以降の運用（AI自動チェック ＋ スマホ1タップ承認）
 
 * **GASの操作は不要です**（トリガーは付けっぱなしのままで自動休眠します）。
-* 次回の選挙（や2027年4月の統一地方選）を追加するときは、**`config/elections.json`** を編集してGitHubへpushするだけです：
-  1. 終わった選挙を `"active": false` に変更し、新しい選挙を追加する
-  2. 手元から以下を実行して反映する（GitHub Actionsが `latest.json` を自動更新しているため、push前に `git pull --rebase` を実行します）：
-     ```powershell
-     cd C:\Users\onsok\.gemini\antigravity\scratch\election-tracker
-     git pull --rebase
-     git push
-     ```
-  3. `config/elections.json` が push されると GitHub Actions が自動で1回走り、公開サイトの `latest.json` と GAS の監視対象日が自動で最新化されます。
+* 毎週 **水曜 20:00** にAIが国民民主党HP（`https://new-kokumin.jp/election-local`）と自治体選管HPを自動チェックし、今週末の選挙があれば **GitHub の Pull Request（PR）** を自動作成します。
+
+### 5-1. 初回だけの事前確認（PC）
+AIが自動でPRを作れるよう、`gh`（GitHub CLI）にログイン済みか1回だけ確認します：
+```powershell
+gh auth status
+```
+未ログインの場合は `gh auth login` を実行してログインしてください（スマホには **GitHub公式アプリ** を入れておくとPR通知が届いて便利です）。
+
+### 5-2. 毎週のルーチン（スマホだけで完結！）
+1. 水曜 20:00 以降にスマホへ届く **GitHub の PR通知** を開きます（該当選挙がない週はPRは作られません）。
+2. PR本文にまとまっている **「登録内容」と「エビデンスURL（政党HP・選管HP等）」** をタップして目検します。
+3. 問題なければスマホ画面下の緑ボタン **`Merge pull request`** を1タップ！
+4. マージと同時に GitHub Actions が自動実行され、公開サイトと GAS の監視対象日が自動で最新化されます。
+
+### （補足）手動で `config/elections.json` を編集して反映する場合
+PCから直接マスタを書き換えたときは、以下で反映します（GitHub Actionsが `latest.json` を自動更新しているため、push前に `git pull --rebase` を実行します）：
+```powershell
+cd C:\Users\onsok\.gemini\antigravity\scratch\election-tracker
+git pull --rebase
+git push
+```
