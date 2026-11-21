@@ -1,6 +1,11 @@
 name: Update Election Results
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - "config/elections.json"
   workflow_dispatch:
     inputs:
       include_all:
