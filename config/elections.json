@@ -1,0 +1,97 @@
+{
+  "party": {
+    "name": "国民民主党",
+    "source_url": "https://new-kokumin.jp/election-local"
+  },
+  "events": [
+    {
+      "id": "2026-11-local",
+      "name": "2026年11月 地方自治体選挙",
+      "description": "直近の地方選（鳥取市議選・松戸市議選）"
+    },
+    {
+      "id": "2027-04-unified-1",
+      "name": "2027年4月 統一地方選（前半）",
+      "description": "2027/04/11 予定（拡張用スロット）"
+    },
+    {
+      "id": "2027-04-unified-2",
+      "name": "2027年4月 統一地方選（後半）",
+      "description": "2027/04/25 予定（拡張用スロット）"
+    }
+  ],
+  "elections": [
+    {
+      "id": "2026-11-22-tottori-city",
+      "event_id": "2026-11-local",
+      "active": true,
+      "prefecture": "鳥取県",
+      "municipality": "鳥取市",
+      "name": "鳥取市議会議員選挙",
+      "election_date": "2026-11-22",
+      "seats": 32,
+      "total_candidates": 43,
+      "portal_url": "https://www.city.tottori.lg.jp/page/42131.html",
+      "results_url": "",
+      "discover_link_keywords": ["開票速報", "開票結果", "開票", "速報"],
+      "watch_candidates": [
+        {
+          "name": "村尾 昌彦",
+          "aliases": ["村尾昌彦", "むらおまさひこ", "村尾", "むらお"],
+          "status_tag": "公認・新人"
+        }
+      ],
+      "parser": {
+        "type": "auto_html_table",
+        "encoding": "auto",
+        "name_column_hint": ["候補者", "氏名", "立候補者"],
+        "votes_column_hint": ["得票", "票数", "計"],
+        "progress_regex": "開票率[：:\\s]*([0-9]+(?:\\.[0-9]+)?)\\s*[%％]",
+        "total_votes_cast_regex": "(?:投票総数|投票者数)[：:\\s]*([0-9,]+)",
+        "updated_at_regex": "((?:[0-9]{1,2}時[0-9]{1,2}分)|(?:[0-9]{1,2}:[0-9]{2}))\\s*現在"
+      },
+      "notes": "2026/11/22 20:00投票締切・21:00頃開票開始予定。当日速報URLが公開されたら results_url に設定すると確実です。"
+    },
+    {
+      "id": "2026-11-15-matsudo-city",
+      "event_id": "2026-11-local",
+      "active": false,
+      "prefecture": "千葉県",
+      "municipality": "松戸市",
+      "name": "松戸市議会議員一般選挙",
+      "election_date": "2026-11-15",
+      "seats": 44,
+      "total_candidates": 62,
+      "portal_url": "https://www.city.matsudo.chiba.jp/shisei/senkyo/toukaihyou/index.html",
+      "results_url": "https://www.city.matsudo.chiba.jp/shisei/senkyo/toukaihyou/kpc1.html",
+      "discover_link_keywords": ["開票", "速報", "結果"],
+      "watch_candidates": [
+        {
+          "name": "おさかべ 智弘",
+          "aliases": ["おさかべ智弘", "刑部智弘", "おさかべ"],
+          "status_tag": "公認・新人"
+        },
+        {
+          "name": "成島 りょうた",
+          "aliases": ["成島りょうた", "成島良太", "成島"],
+          "status_tag": "公認・元職"
+        },
+        {
+          "name": "川井 きよまさ",
+          "aliases": ["川井きよまさ", "川井清正", "川井"],
+          "status_tag": "公認・元職"
+        }
+      ],
+      "parser": {
+        "type": "auto_html_table",
+        "encoding": "auto",
+        "name_column_hint": ["候補者", "氏名", "立候補者"],
+        "votes_column_hint": ["得票", "票数", "計"],
+        "progress_regex": "開票率[：:\\s]*([0-9]+(?:\\.[0-9]+)?)\\s*[%％]",
+        "total_votes_cast_regex": "(?:投票総数|投票者数|有効投票)[：:\\s]*([0-9,]+)",
+        "updated_at_regex": "((?:[0-9]{1,2}時[0-9]{1,2}分)|(?:[0-9]{1,2}:[0-9]{2}))\\s*現在"
+      },
+      "notes": "プロトタイプ検証用の確定選挙データ（定数44・立候補62）。"
+    }
+  ]
+}

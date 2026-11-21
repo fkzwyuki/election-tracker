@@ -1,0 +1,362 @@
+{
+  "generated_at": "2026-11-21T14:28:49.033Z",
+  "mode": "live",
+  "party": {
+    "name": "国民民主党",
+    "source_url": "https://new-kokumin.jp/election-local"
+  },
+  "events": [
+    {
+      "id": "2026-11-local",
+      "name": "2026年11月 地方自治体選挙",
+      "description": "直近の地方選（鳥取市議選・松戸市議選）"
+    },
+    {
+      "id": "2027-04-unified-1",
+      "name": "2027年4月 統一地方選（前半）",
+      "description": "2027/04/11 予定（拡張用スロット）"
+    },
+    {
+      "id": "2027-04-unified-2",
+      "name": "2027年4月 統一地方選（後半）",
+      "description": "2027/04/25 予定（拡張用スロット）"
+    }
+  ],
+  "elections": [
+    {
+      "id": "2026-11-22-tottori-city",
+      "event_id": "2026-11-local",
+      "prefecture": "鳥取県",
+      "municipality": "鳥取市",
+      "name": "鳥取市議会議員選挙",
+      "election_date": "2026-11-22",
+      "seats": 32,
+      "total_candidates": 43,
+      "portal_url": "https://www.city.tottori.lg.jp/page/42131.html",
+      "source_url": "https://www.city.tottori.lg.jp/page/42131.html",
+      "source_hash": null,
+      "status": "pre_count",
+      "error_message": null,
+      "official_updated_at": "開票速報ページ未公開",
+      "fetched_at": "2026-11-21T14:28:48.874Z",
+      "progress_pct": 0,
+      "counted_votes": 0,
+      "total_votes_cast": null,
+      "remaining_votes_estimate": null,
+      "remaining_basis": null,
+      "seat_cutoff_votes": null,
+      "runner_up_votes": null,
+      "watched_summaries": [
+        {
+          "name": "村尾 昌彦",
+          "status_tag": "公認・新人",
+          "found": false,
+          "rank": null,
+          "votes": null,
+          "zone": "unknown",
+          "diff_from_cutoff": null,
+          "cutoff_label": null,
+          "surrounding": []
+        }
+      ],
+      "notes": "2026/11/22 20:00投票締切・21:00頃開票開始予定。当日速報URLが公開されたら results_url に設定すると確実です。"
+    },
+    {
+      "id": "2026-11-15-matsudo-city",
+      "event_id": "2026-11-local",
+      "prefecture": "千葉県",
+      "municipality": "松戸市",
+      "name": "松戸市議会議員一般選挙",
+      "election_date": "2026-11-15",
+      "seats": 44,
+      "total_candidates": 62,
+      "portal_url": "https://www.city.matsudo.chiba.jp/shisei/senkyo/toukaihyou/index.html",
+      "source_url": "https://www.city.matsudo.chiba.jp/shisei/senkyo/toukaihyou/kpc1.html",
+      "source_hash": "00edc4886079edc2de2ff2438e5aebb2b30b472f96bce7c778c0ca1232cf85e9",
+      "status": "final",
+      "error_message": null,
+      "official_updated_at": null,
+      "fetched_at": "2026-11-21T14:28:49.033Z",
+      "progress_pct": 100,
+      "counted_votes": 140990.999,
+      "total_votes_cast": 142823,
+      "remaining_votes_estimate": 0,
+      "remaining_basis": "開票終了",
+      "seat_cutoff_votes": 1688,
+      "runner_up_votes": 1638,
+      "watched_summaries": [
+        {
+          "name": "おさかべ 智弘",
+          "official_name": "おさかべ 智弘",
+          "status_tag": "公認・新人",
+          "found": true,
+          "rank": 15,
+          "votes": 2602,
+          "zone": "safe",
+          "diff_from_cutoff": 964,
+          "cutoff_label": "次点(45位)との差",
+          "surrounding": [
+            {
+              "index": 12,
+              "rank": 12,
+              "name": "石井 いさむ",
+              "votes": 2953,
+              "diff_from_me": 351,
+              "is_self": false,
+              "is_watched": false,
+              "in_seats": true,
+              "is_cutoff_border_after": false
+            },
+            {
+              "index": 13,
+              "rank": 13,
+              "name": "深山 よしかず",
+              "votes": 2927,
+              "diff_from_me": 325,
+              "is_self": false,
+              "is_watched": false,
+              "in_seats": true,
+              "is_cutoff_border_after": false
+            },
+            {
+              "index": 14,
+              "rank": 14,
+              "name": "ミール かずえ",
+              "votes": 2863,
+              "diff_from_me": 261,
+              "is_self": false,
+              "is_watched": false,
+              "in_seats": true,
+              "is_cutoff_border_after": false
+            },
+            {
+              "index": 15,
+              "rank": 15,
+              "name": "おさかべ 智弘",
+              "votes": 2602,
+              "diff_from_me": 0,
+              "is_self": true,
+              "is_watched": true,
+              "in_seats": true,
+              "is_cutoff_border_after": false
+            },
+            {
+              "index": 16,
+              "rank": 16,
+              "name": "市川 恵一",
+              "votes": 2536,
+              "diff_from_me": -66,
+              "is_self": false,
+              "is_watched": false,
+              "in_seats": true,
+              "is_cutoff_border_after": false
+            },
+            {
+              "index": 17,
+              "rank": 17,
+              "name": "末松 ひろと",
+              "votes": 2477,
+              "diff_from_me": -125,
+              "is_self": false,
+              "is_watched": false,
+              "in_seats": true,
+              "is_cutoff_border_after": false
+            },
+            {
+              "index": 18,
+              "rank": 18,
+              "name": "岩瀬 まり",
+              "votes": 2464,
+              "diff_from_me": -138,
+              "is_self": false,
+              "is_watched": false,
+              "in_seats": true,
+              "is_cutoff_border_after": false
+            }
+          ]
+        },
+        {
+          "name": "成島 りょうた",
+          "official_name": "成島 りょうた",
+          "status_tag": "公認・元職",
+          "found": true,
+          "rank": 40,
+          "votes": 1850,
+          "zone": "safe",
+          "diff_from_cutoff": 212,
+          "cutoff_label": "次点(45位)との差",
+          "surrounding": [
+            {
+              "index": 37,
+              "rank": 37,
+              "name": "丹呉 あきこ",
+              "votes": 1986,
+              "diff_from_me": 136,
+              "is_self": false,
+              "is_watched": false,
+              "in_seats": true,
+              "is_cutoff_border_after": false
+            },
+            {
+              "index": 38,
+              "rank": 38,
+              "name": "渋谷 つよし",
+              "votes": 1968,
+              "diff_from_me": 118,
+              "is_self": false,
+              "is_watched": false,
+              "in_seats": true,
+              "is_cutoff_border_after": false
+            },
+            {
+              "index": 39,
+              "rank": 39,
+              "name": "西田 よしあき",
+              "votes": 1939,
+              "diff_from_me": 89,
+              "is_self": false,
+              "is_watched": false,
+              "in_seats": true,
+              "is_cutoff_border_after": false
+            },
+            {
+              "index": 40,
+              "rank": 40,
+              "name": "成島 りょうた",
+              "votes": 1850,
+              "diff_from_me": 0,
+              "is_self": true,
+              "is_watched": true,
+              "in_seats": true,
+              "is_cutoff_border_after": false
+            },
+            {
+              "index": 41,
+              "rank": 41,
+              "name": "田中 むつお",
+              "votes": 1825,
+              "diff_from_me": -25,
+              "is_self": false,
+              "is_watched": false,
+              "in_seats": true,
+              "is_cutoff_border_after": false
+            },
+            {
+              "index": 42,
+              "rank": 42,
+              "name": "照井 りょう",
+              "votes": 1759,
+              "diff_from_me": -91,
+              "is_self": false,
+              "is_watched": false,
+              "in_seats": true,
+              "is_cutoff_border_after": false
+            },
+            {
+              "index": 43,
+              "rank": 42,
+              "name": "なかやま 英夫",
+              "votes": 1759,
+              "diff_from_me": -91,
+              "is_self": false,
+              "is_watched": false,
+              "in_seats": true,
+              "is_cutoff_border_after": false
+            }
+          ]
+        },
+        {
+          "name": "川井 きよまさ",
+          "official_name": "川井 きよまさ",
+          "status_tag": "公認・元職",
+          "found": true,
+          "rank": 44,
+          "votes": 1688,
+          "zone": "safe",
+          "diff_from_cutoff": 50,
+          "cutoff_label": "次点(45位)との差",
+          "surrounding": [
+            {
+              "index": 41,
+              "rank": 41,
+              "name": "田中 むつお",
+              "votes": 1825,
+              "diff_from_me": 137,
+              "is_self": false,
+              "is_watched": false,
+              "in_seats": true,
+              "is_cutoff_border_after": false
+            },
+            {
+              "index": 42,
+              "rank": 42,
+              "name": "照井 りょう",
+              "votes": 1759,
+              "diff_from_me": 71,
+              "is_self": false,
+              "is_watched": false,
+              "in_seats": true,
+              "is_cutoff_border_after": false
+            },
+            {
+              "index": 43,
+              "rank": 42,
+              "name": "なかやま 英夫",
+              "votes": 1759,
+              "diff_from_me": 71,
+              "is_self": false,
+              "is_watched": false,
+              "in_seats": true,
+              "is_cutoff_border_after": false
+            },
+            {
+              "index": 44,
+              "rank": 44,
+              "name": "川井 きよまさ",
+              "votes": 1688,
+              "diff_from_me": 0,
+              "is_self": true,
+              "is_watched": true,
+              "in_seats": true,
+              "is_cutoff_border_after": true
+            },
+            {
+              "index": 45,
+              "rank": 45,
+              "name": "岡本 ゆうこ",
+              "votes": 1638,
+              "diff_from_me": -50,
+              "is_self": false,
+              "is_watched": false,
+              "in_seats": false,
+              "is_cutoff_border_after": false
+            },
+            {
+              "index": 46,
+              "rank": 46,
+              "name": "上條 えいこ",
+              "votes": 1607,
+              "diff_from_me": -81,
+              "is_self": false,
+              "is_watched": false,
+              "in_seats": false,
+              "is_cutoff_border_after": false
+            },
+            {
+              "index": 47,
+              "rank": 47,
+              "name": "柿沼 みつとし",
+              "votes": 1464,
+              "diff_from_me": -224,
+              "is_self": false,
+              "is_watched": false,
+              "in_seats": false,
+              "is_cutoff_border_after": false
+            }
+          ]
+        }
+      ],
+      "notes": "プロトタイプ検証用の確定選挙データ（定数44・立候補62）。"
+    }
+  ]
+}

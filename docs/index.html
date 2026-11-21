@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>地方選 開票速報トラッカー</title>
+  <link rel="icon" type="image/png" href="./assets/usagi-listen.png">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand-group">
+        <div>
+          <h1 class="site-title">地方選 開票速報トラッカー</h1>
+          <p class="site-subtitle" id="party-label">読み込み中...</p>
+        </div>
+        <img
+          src="./assets/usagi-listen.png"
+          alt="こくみんうさぎ（きく）"
+          class="header-title-mascot"
+        >
+      </div>
+      <button id="reload-btn" class="reload-btn" type="button" aria-label="最新データを再読み込み">
+        ↻ 更新
+      </button>
+    </div>
+
+    <div class="controls">
+      <select id="event-select" class="control-select" aria-label="選挙イベント選択"></select>
+      <input
+        id="search-input"
+        class="control-input"
+        type="search"
+        placeholder="自治体・候補者名で絞り込み..."
+        aria-label="自治体・候補者名で絞り込み"
+      >
+    </div>
+    <div class="meta-bar">
+      <span id="generated-at">最終更新: --</span>
+      <span id="mode-badge" class="badge badge-muted hidden">DEMO</span>
+    </div>
+  </header>
+
+  <main id="app" class="container">
+    <div class="loading-box">データを読み込んでいます...</div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-mascot-row">
+      <img src="./assets/usagi-cheer.png" alt="こくみんうさぎ（フレッフレッ）" class="footer-mascot">
+      <p>
+        ※ 本ページは各自治体選挙管理委員会の公表情報をもとに自動整理した非公式の速報まとめです。<br>
+        正確な確定情報・最新の公式発表は、必ず各選管の公式ページをご確認ください。
+      </p>
+    </div>
+  </footer>
+
+  <div id="criteria-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="criteria-title">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="criteria-title">戦況判定の表示条件（目安）</h3>
+        <button type="button" id="criteria-close" class="modal-close" aria-label="閉じる">✕</button>
+      </div>
+      <div class="modal-body">
+        <dl class="criteria-list">
+          <dt><span class="b-chip b-confirmed">当確</span></dt>
+          <dd>開票率100%（確定）で定数内、または開票率50%以上で「次点との票差 ＞ 残り見込み票 × 1.15」を満たす場合（逆転が極めて困難な状態）。</dd>
+
+          <dt><span class="b-chip b-likely">見込み〇</span></dt>
+          <dd>定数内（当選順位以内）に位置し、当落線上の条件（僅差・定数ギリギリ）に当てはまらない場合。</dd>
+
+          <dt><span class="b-chip b-border">当落線上</span></dt>
+          <dd>定数内でも下位2位以内・同票タイ・次点との差が当選ライン得票の3%以内（最低50票）の場合、または圏外でも定数直下（2位以内）や僅差の場合。</dd>
+
+          <dt><span class="b-chip b-struggle">圏外</span></dt>
+          <dd>定数外で当落線上より離れている場合、または開票確定で定数外となった場合。</dd>
+        </dl>
+        <p class="criteria-note">
+          ※ 上記は選管公表の得票数・開票率から自動計算した目安であり、報道機関や選管による公式の当選確実発表ではありません。
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
