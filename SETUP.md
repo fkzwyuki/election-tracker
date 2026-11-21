@@ -52,18 +52,17 @@ GitHub Actionsが自動で `latest.json` を書き換えて保存できるよう
 ## ステップ2：Cloudflare Pages でWebページを公開する
 
 1. [Cloudflare Dashboard](https://dash.cloudflare.com/) にログインします（アカウントがない場合は無料で作成）。
-2. 左メニューの **`Workers & Pages`** をクリックします。
-3. **`作成`**（Create）ボタンを押し、**`Pages`** タブに切り替えて **`Gitに接続`**（Connect to Git）をクリックします。
-4. GitHubアカウントと連携し、ステップ1で作った **`election-tracker`** リポジトリを選択して **`セットアップの開始`** を押します。
+2. 左メニューの **`Workers & Pages`** をクリックし、右上の青い **`Create application`** を押します。
+3. 画面一番下にある **`Continue to Pages`** をクリックします（※ 上の Workers ではなく **Pages** を選ぶことで、アカウント名が入らない綺麗な `*.pages.dev` URL になります）。
+4. **`Connect to Git`** でGitHubアカウントと連携し、ステップ1で作った **`election-tracker`** リポジトリを選択して **`Begin setup`** を押します。
 5. ビルド設定の画面で、以下のように入力します：
-   * **プロジェクト名**: `election-tracker`（URLの一部になります。好きに変更OK）
-   * **プロダクションブランチ**: `main`
-   * **フレームワークプリセット**: `なし`（None）
-   * **ビルドコマンド**: **空欄のまま**
-   * **ビルド出力ディレクトリ**: **`docs`**（重要！半角小文字で `docs`）
-6. **`保存してデプロイする`** をクリックします。
-7. 30秒〜1分ほど待つと「成功！」となり、**`https://xxxx.pages.dev`** というURLが発行されます。
-8. そのURLをスマホやPCで開き、松戸市議選・鳥取市議選の画面が表示されれば **ステップ2完了** です！
+   * **Project name**: 好きなURL用の名前（例: `election-tracker-dpfp` → `https://election-tracker-dpfp.pages.dev` になります）
+   * **Production branch**: `main`
+   * **Framework preset**: `None`（なし）
+   * **Build command**: **空欄のまま**
+   * **Build output directory**: **`docs`**（重要！半角小文字で `docs`）
+6. **`Save and Deploy`** をクリックします。
+7. 30秒〜1分ほど待つと完了し、発行された `https://〇〇.pages.dev` をスマホやPCで開いて表示されれば **ステップ2完了** です！
 
 > **ポイント**: 今後、GitHubの `docs/data/latest.json` が更新されると、Cloudflare Pages が自動で検知して数十秒以内にWebページを最新化してくれます。
 
@@ -105,7 +104,7 @@ GASがGitHub Actionsを起動するための鍵（Fine-grained PAT）を作り�
 ### 3-4. 手動テスト実行（ちゃんと動くか確認）
 1. 左メニューの **`エディタ`**（`< >` アイコン）に戻ります。
 2. 上部のツールバーで、実行する関数を **`manualTriggerNow`** に切り替えて **`実行`** を押します。
-   * 初回のみ「承認が必要です」と出ます → **`権限を確認`** → 自分のGoogleアカウント選択 → **`詳細`** → **`〇〇（安全ではないページ）に移動`** → **`許可`** をクリック。
+   * 初回のみ「Google hasn't verified this app」と出ます → 左下の **`Advanced`** → **`Go to 選挙開票トラッカー自動更新 (unsafe)`** → **`Allow`（許可）** をクリック。
 3. 下部の実行ログに **`Status: 204`** と出れば成功です！
 4. GitHubリポジトリの **`Actions`** タブを開き、`Update Election Results` が実行されて緑色のチェックが付けば **連携成功** です！
 
@@ -118,7 +117,8 @@ GASがGitHub Actionsを起動するための鍵（Fine-grained PAT）を作り�
    * **時間の間隔を選択（分）**: **`10分おき`** または **`15分おき`**
 3. **`保存`** をクリックすれば **ステップ3完了** です！
 
-> **安心ポイント**: `triggerElectionUpdate` は **20:00〜翌2:59 の間だけ** GitHub Actions を起動し、昼間や早朝は自動でスキップする仕組みになっています。
+> **安心ポイント（トリガーは付けっぱなしでOK！）**:
+> `triggerElectionUpdate` は公開サイトの `latest.json` を自動参照し、**「投開票日の 20:00〜翌2:59」かつ「まだ確定（`final`）していない選挙があるとき」だけ** GitHub Actions を起動します。選挙のない日（平日・週末問わず）や全選挙区が確定した後は自動でスキップするため、トリガーを止め忘れても無駄な実行は起きません（離島の平日投票日なども自動対応します）。
 
 ---
 
@@ -132,7 +132,15 @@ GASがGitHub Actionsを起動するための鍵（Fine-grained PAT）を作り�
 
 ---
 
-## ステップ5：選挙が終わった後の後片付け
+## ステップ5：選挙が終わった後 ＆ 次回選挙の追加方法
 
-1. 開票が確定して落ち着いたら、**GASのトリガー**（時計アイコン）を一度削除（または停止）しておくと無駄な実行が止まります。
-2. 次回の選挙（や2027年4月の統一地方選）の前に、`config/elections.json` の終わった選挙を `"active": false` に変更し、新しい選挙を追加してGASトリガーをオンにするだけで再利用できます。
+* **GASの操作は不要です**（トリガーは付けっぱなしのままで自動休眠します）。
+* 次回の選挙（や2027年4月の統一地方選）を追加するときは、**`config/elections.json`** を編集してGitHubへpushするだけです：
+  1. 終わった選挙を `"active": false` に変更し、新しい選挙を追加する
+  2. 手元から以下を実行して反映する（GitHub Actionsが `latest.json` を自動更新しているため、push前に `git pull --rebase` を実行します）：
+     ```powershell
+     cd C:\Users\onsok\.gemini\antigravity\scratch\election-tracker
+     git pull --rebase
+     git push
+     ```
+  3. `config/elections.json` が push されると GitHub Actions が自動で1回走り、公開サイトの `latest.json` と GAS の監視対象日が自動で最新化されます。
