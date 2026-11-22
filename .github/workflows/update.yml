@@ -33,6 +33,8 @@ jobs:
           node-version: "22"
 
       - name: Collect election results
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           if [ "${{ github.event.inputs.include_all }}" = "true" ]; then
             node scripts/collect.mjs --all

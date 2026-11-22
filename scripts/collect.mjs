@@ -151,6 +151,157 @@ function discoverResultLink(html, baseUrl, keywords = ['開票', '速報', '結�
 }
 
 // ---------------------------------------------------------------------------
+// ページ内の最新「開票速報」PDFリンクを探索（時刻・最終を優先判定）
+// ---------------------------------------------------------------------------
+
+function extractTimeSortKey(text) {
+  const norm = normalizeText(text);
+  if (/最終|確定/.test(norm)) return 99999;
+  const m = norm.match(/([0-9]{1,2})\s*(?:時|:)\s*([0-9]{1,2})?/);
+  if (!m) return 0;
+  let hour = Number(m[1]);
+  const min = m[2] ? Number(m[2]) : 0;
+  // 深夜 0:00〜5:59 は 24:00〜29:59 として扱い 23:45 より後に並べる
+  if (hour < 6) hour += 24;
+  return hour * 60 + min;
+}
+
+function discoverLatestPdfLink(html, baseUrl, keywords = ['開票速報', '開票結果']) {
+  const linkRegex = /<a\s+[^>]*href=["']([^"']+\.pdf(?:\?[^"']*)?)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  const hits = [];
+  let m;
+  let order = 0;
+  while ((m = linkRegex.exec(html)) !== null) {
+    order += 1;
+    const href = m[1].trim();
+    const text = stripTags(m[2]);
+    // 投票速報のみ・公報・立候補届出一覧などは除外
+    if (/投票速報|選挙公報|立候補|宣誓書|閉鎖時刻|事務所/.test(text) && !/開票/.test(text)) {
+      continue;
+    }
+    const matched = keywords.some((kw) => text.includes(kw) || href.toLowerCase().includes(kw.toLowerCase()));
+    if (!matched) continue;
+
+    try {
+      const resolved = new URL(href, baseUrl).toString();
+      hits.push({
+        url: resolved,
+        text,
+        timeKey: extractTimeSortKey(text),
+        order,
+      });
+    } catch {
+      // ignore invalid URL
+    }
+  }
+  if (hits.length === 0) return null;
+  hits.sort((a, b) => b.timeKey - a.timeKey || b.order - a.order);
+  return hits[0];
+}
+
+// ---------------------------------------------------------------------------
+// PDF取得 ＋ Gemini API（無料枠）による構造化JSON抽出（ハッシュ変更時のみ呼出）
+// ---------------------------------------------------------------------------
+
+async function fetchBinary(url) {
+  const res = await fetch(url, {
+    headers: { 'User-Agent': USER_AGENT },
+    signal: AbortSignal.timeout(30000),
+  });
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status} ${res.statusText} (${url})`);
+  }
+  const buf = Buffer.from(await res.arrayBuffer());
+  const hash = crypto.createHash('sha256').update(buf).digest('hex');
+  return { buf, hash, finalUrl: res.url };
+}
+
+async function parsePdfWithGemini(pdfBuf, electionCfg) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('画像PDFを検出しましたが GEMINI_API_KEY が未設定です（GitHub Secretsに設定してください）');
+  }
+
+  const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+  const prompt = [
+    `これは日本の地方選挙（${electionCfg.name}）の開票速報PDFです。`,
+    '以下のJSON形式のみを厳密に出力してください（マークダウンや説明文は不要）。',
+    '{',
+    '  "official_updated_at": "PDF記載の時刻や確定表記（例: 22時15分現在、最終など。不明ならnull）",',
+    '  "progress_pct": 開票率の数値（%記号なし、例: 25.77。最終/確定なら100。不明ならnull）,',
+    '  "total_votes_cast": 投票者総数または投票総数の整数（不明ならnull）,',
+    '  "remaining_votes": 残票数の整数（記載があれば。なければnull）,',
+    '  "is_final": 最終確定報であれば true、途中速報であれば false,',
+    '  "candidates": [',
+    '    { "name": "候補者氏名", "votes": 得票数(数値) }',
+    '  ]',
+    '}',
+    '注意点:',
+    '- 取り消し線が引かれている辞退候補・立候補取消の行は candidates に含めないでください。',
+    '- 合計・無効票・按分切捨票などの集計行は candidates に含めないでください。',
+    '- 得票数はカンマなしの数値（按分小数がある場合は小数）にしてください。',
+  ].join('\n');
+
+  const body = {
+    contents: [
+      {
+        parts: [
+          {
+            inline_data: {
+              mime_type: 'application/pdf',
+              data: pdfBuf.toString('base64'),
+            },
+          },
+          { text: prompt },
+        ],
+      },
+    ],
+    generationConfig: {
+      temperature: 0,
+      responseMimeType: 'application/json',
+    },
+  };
+
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(60000),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Gemini API HTTP ${res.status}: ${errText.slice(0, 200)}`);
+  }
+
+  const json = await res.json();
+  const rawText = json?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  if (!rawText) {
+    throw new Error('Gemini API から空のレスポンスが返りました');
+  }
+
+  const cleaned = rawText.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+  const parsed = JSON.parse(cleaned);
+  const candidates = (parsed.candidates || [])
+    .map((c) => ({
+      name: normalizeText(c.name),
+      votes: parseNumber(c.votes),
+    }))
+    .filter((c) => c.name && c.votes !== null);
+
+  return {
+    candidates,
+    progressPct: parsed.progress_pct !== undefined && parsed.progress_pct !== null ? Number(parsed.progress_pct) : null,
+    totalVotesCast: parsed.total_votes_cast !== undefined && parsed.total_votes_cast !== null ? parseNumber(parsed.total_votes_cast) : null,
+    officialRemainingVotes: parsed.remaining_votes !== undefined && parsed.remaining_votes !== null ? parseNumber(parsed.remaining_votes) : null,
+    officialUpdatedAt: parsed.official_updated_at || null,
+    isFinal: Boolean(parsed.is_final),
+  };
+}
+
+// ---------------------------------------------------------------------------
 // HTMLテーブルからの汎用抽出（候補者名・得票数）
 // ---------------------------------------------------------------------------
 
@@ -265,6 +416,7 @@ function buildElectionReport(electionCfg, rawData) {
     candidates = [],
     progressPct = null,
     totalVotesCast = null,
+    officialRemainingVotes = null,
     officialUpdatedAt = null,
     sourceUrl = electionCfg.results_url || electionCfg.portal_url,
     sourceHash = null,
@@ -314,6 +466,9 @@ function buildElectionReport(electionCfg, rawData) {
   if (status === 'final' || progressPct === 100) {
     remainingVotesEstimate = 0;
     remainingBasis = '開票終了';
+  } else if (officialRemainingVotes !== null && officialRemainingVotes >= 0) {
+    remainingVotesEstimate = Math.round(officialRemainingVotes);
+    remainingBasis = '選管公表の残票';
   } else if (totalVotesCast !== null && totalVotesCast >= countedVotes && countedVotes > 0) {
     remainingVotesEstimate = Math.max(0, Math.round(totalVotesCast - countedVotes));
     remainingBasis = '投票総数ベース（無効票含む概算）';
@@ -572,7 +727,45 @@ async function collectSingleElection(electionCfg, prevReport) {
     const candidates = parseCandidatesFromTables(tables, electionCfg.parser);
     const meta = parseMetadataFromHtml(fetched.html, electionCfg.parser);
 
+    // 4. HTMLテーブルが空なら、ページ内の最新「開票速報PDF」を探して解析（Gemini API無料枠フォールバック）
     if (candidates.length === 0) {
+      const pdfLink = discoverLatestPdfLink(
+        fetched.html,
+        fetched.finalUrl,
+        electionCfg.pdf_link_keywords || ['開票速報', '開票結果']
+      );
+
+      if (pdfLink) {
+        console.log(`[${electionCfg.id}] 開票速報PDF検出: ${pdfLink.text} -> ${pdfLink.url}`);
+        const pdf = await fetchBinary(pdfLink.url);
+
+        if (prevReport && prevReport.source_hash === pdf.hash && prevReport.status !== 'error') {
+          console.log(`[${electionCfg.id}] PDF変更なし（Gemini呼出スキップ）`);
+          return {
+            ...prevReport,
+            fetched_at: new Date().toISOString(),
+          };
+        }
+
+        const pdfData = await parsePdfWithGemini(pdf.buf, electionCfg);
+        if (pdfData.candidates.length > 0) {
+          const pdfStatus = pdfData.isFinal || pdfData.progressPct === 100 ? 'final' : 'counting';
+          console.log(
+            `[${electionCfg.id}] PDF解析成功: ${pdfData.candidates.length}名 / 開票率=${pdfData.progressPct ?? '不明'}%`
+          );
+          return buildElectionReport(electionCfg, {
+            candidates: pdfData.candidates,
+            progressPct: pdfData.progressPct,
+            totalVotesCast: pdfData.totalVotesCast,
+            officialRemainingVotes: pdfData.officialRemainingVotes,
+            officialUpdatedAt: pdfData.officialUpdatedAt || pdfLink.text,
+            sourceUrl: pdf.finalUrl,
+            sourceHash: pdf.hash,
+            status: pdfStatus,
+          });
+        }
+      }
+
       return buildElectionReport(electionCfg, {
         status: 'pre_count',
         progressPct: meta.progressPct ?? 0,

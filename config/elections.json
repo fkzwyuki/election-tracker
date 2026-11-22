@@ -32,12 +32,13 @@
       "seats": 32,
       "total_candidates": 43,
       "portal_url": "https://www.city.tottori.lg.jp/page/42131.html",
-      "results_url": "",
+      "results_url": "https://www.city.tottori.lg.jp/page/43885.html",
       "discover_link_keywords": ["開票速報", "開票結果", "開票", "速報"],
+      "pdf_link_keywords": ["開票速報", "開票結果"],
       "watch_candidates": [
         {
           "name": "村尾 昌彦",
-          "aliases": ["村尾昌彦", "むらおまさひこ", "村尾", "むらお"],
+          "aliases": ["村尾昌彦", "村尾まさひこ", "むらおまさひこ", "村尾", "むらお"],
           "status_tag": "公認・新人"
         }
       ],
