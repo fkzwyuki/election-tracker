@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-22T13:04:28.301Z",
+  "generated_at": "2026-11-22T13:14:28.622Z",
   "mode": "live",
   "party": {
     "name": "国民民主党",
@@ -38,7 +38,7 @@
       "status": "pre_count",
       "error_message": null,
       "official_updated_at": "16時00分",
-      "fetched_at": "2026-11-22T13:04:28.301Z",
+      "fetched_at": "2026-11-22T13:14:28.622Z",
       "progress_pct": 0,
       "counted_votes": 0,
       "total_votes_cast": null,
