@@ -2,10 +2,27 @@ const DATA_URL = './data/latest.json';
 
 let state = {
   payload: null,
-  selectedEventId: 'ALL',
+  selectedEventId: 'TODAY',
+  initializedSelection: false,
   query: '',
   expandedIds: new Set(),
 };
+
+/**
+ * 追う対象の日付（JST基準・0:00〜2:59は前日の選挙が継続中とみなす）
+ */
+function getTargetElectionDateJst() {
+  const now = new Date();
+  // UTC時刻に+9時間してJST相当のUTCフィールドで計算（端末のタイムゾーンに依存しない）
+  const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  if (jst.getUTCHours() <= 2) {
+    jst.setUTCDate(jst.getUTCDate() - 1);
+  }
+  const y = jst.getUTCFullYear();
+  const m = String(jst.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(jst.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
 
 function fmtNum(n) {
   if (n === null || n === undefined) return '--';
@@ -416,9 +433,14 @@ function render() {
   const app = document.getElementById('app');
   if (!state.payload) return;
 
+  const targetDate = getTargetElectionDateJst();
   const q = state.query.trim().toLowerCase();
   const filtered = (state.payload.elections || []).filter((e) => {
-    if (state.selectedEventId !== 'ALL' && e.event_id !== state.selectedEventId) return false;
+    if (state.selectedEventId === 'TODAY') {
+      if (e.election_date !== targetDate) return false;
+    } else if (state.selectedEventId !== 'ALL' && e.event_id !== state.selectedEventId) {
+      return false;
+    }
     if (!q) return true;
     const hay = [
       e.prefecture,
@@ -432,7 +454,10 @@ function render() {
   });
 
   if (filtered.length === 0) {
-    app.innerHTML = '<div class="empty-box">該当する選挙データがありません。</div>';
+    app.innerHTML =
+      state.selectedEventId === 'TODAY'
+        ? `<div class="empty-box">本日（${escapeHtml(targetDate)}）の開票対象選挙はありません。<br>上のプルダウンから過去の選挙イベントを選択できます。</div>`
+        : '<div class="empty-box">該当する選挙データがありません。</div>';
     return;
   }
 
@@ -441,7 +466,11 @@ function render() {
 
 function populateEvents(events) {
   const sel = document.getElementById('event-select');
-  const options = ['<option value="ALL">すべての選挙イベント</option>'];
+  const targetDate = getTargetElectionDateJst();
+  const options = [
+    `<option value="TODAY">本日の開票対象（${escapeHtml(targetDate)}）</option>`,
+    '<option value="ALL">すべての選挙イベント</option>',
+  ];
   for (const ev of events || []) {
     options.push(`<option value="${escapeHtml(ev.id)}">${escapeHtml(ev.name)}</option>`);
   }
@@ -470,6 +499,13 @@ async function loadData() {
       modeBadge.classList.remove('hidden');
     } else {
       modeBadge.classList.add('hidden');
+    }
+
+    if (!state.initializedSelection) {
+      const targetDate = getTargetElectionDateJst();
+      const hasToday = (payload.elections || []).some((e) => e.election_date === targetDate);
+      state.selectedEventId = hasToday ? 'TODAY' : 'ALL';
+      state.initializedSelection = true;
     }
 
     populateEvents(payload.events);
