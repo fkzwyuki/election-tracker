@@ -216,14 +216,41 @@ async function fetchBinary(url) {
   return { buf, hash, finalUrl: res.url };
 }
 
+async function discoverAvailableFlashModel(apiKey) {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`,
+    { signal: AbortSignal.timeout(15000) }
+  );
+  if (!res.ok) return null;
+  const data = await res.json();
+  const candidates = (data.models || [])
+    .filter(
+      (m) =>
+        Array.isArray(m.supportedGenerationMethods) &&
+        m.supportedGenerationMethods.includes('generateContent') &&
+        /gemini.*flash/i.test(m.name || '') &&
+        !/image|tts|audio|live|thinking-exp/i.test(m.name || '')
+    )
+    .map((m) => m.name.replace(/^models\//, ''));
+
+  if (candidates.length === 0) return null;
+  // バージョン番号が大きい最新Flashを優先（liteより通常版を優先）
+  candidates.sort((a, b) => {
+    const aLite = /lite/i.test(a) ? 1 : 0;
+    const bLite = /lite/i.test(b) ? 1 : 0;
+    if (aLite !== bLite) return aLite - bLite;
+    return b.localeCompare(a, undefined, { numeric: true });
+  });
+  return candidates[0];
+}
+
 async function parsePdfWithGemini(pdfBuf, electionCfg) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error('画像PDFを検出しましたが GEMINI_API_KEY が未設定です（GitHub Secretsに設定してください）');
   }
 
-  const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  let model = process.env.GEMINI_MODEL || 'gemini-flash-latest';
 
   const prompt = [
     `これは日本の地方選挙（${electionCfg.name}）の開票速報PDFです。`,
@@ -264,16 +291,29 @@ async function parsePdfWithGemini(pdfBuf, electionCfg) {
     },
   };
 
-  const res = await fetch(endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(60000),
-  });
+  async function callModel(targetModel) {
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${encodeURIComponent(apiKey)}`;
+    return fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(60000),
+    });
+  }
+
+  let res = await callModel(model);
+  if (res.status === 404) {
+    const discovered = await discoverAvailableFlashModel(apiKey);
+    if (discovered && discovered !== model) {
+      console.log(`[${electionCfg.id}] モデル切替: ${model} -> ${discovered}`);
+      model = discovered;
+      res = await callModel(model);
+    }
+  }
 
   if (!res.ok) {
     const errText = await res.text();
-    throw new Error(`Gemini API HTTP ${res.status}: ${errText.slice(0, 200)}`);
+    throw new Error(`Gemini API HTTP ${res.status} (${model}): ${errText.slice(0, 200)}`);
   }
 
   const json = await res.json();
