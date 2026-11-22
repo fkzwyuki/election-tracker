@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-22T13:44:29.261Z",
+  "generated_at": "2026-11-22T13:54:32.010Z",
   "mode": "live",
   "party": {
     "name": "国民民主党",
@@ -34,11 +34,11 @@
       "total_candidates": 43,
       "portal_url": "https://www.city.tottori.lg.jp/page/42131.html",
       "source_url": "https://www.city.tottori.lg.jp/page/43885.html",
-      "source_hash": "753e540c7eb55e31f967a77e298c3df0f4f1ab51b2847fb1c6ca911fd34f902b",
+      "source_hash": "05c27d941e044a288c4d59cf0b4d693cafa39469ca0dadf79fd55e1b8014ac3e",
       "status": "pre_count",
       "error_message": null,
       "official_updated_at": "16時00分",
-      "fetched_at": "2026-11-22T13:44:29.260Z",
+      "fetched_at": "2026-11-22T13:54:32.009Z",
       "progress_pct": 0,
       "counted_votes": 0,
       "total_votes_cast": null,
