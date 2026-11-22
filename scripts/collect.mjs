@@ -712,9 +712,13 @@ async function collectSingleElection(electionCfg, prevReport) {
       }
     }
 
-    // 2. 速報ページを取得（差分検知）
+    // 2. 速報ページを取得（差分検知: すでに開票中/確定のHTMLデータ取得済み時のみスキップ）
     const fetched = await fetchHtml(targetUrl, electionCfg.parser?.encoding);
-    if (prevReport && prevReport.source_hash === fetched.hash && prevReport.status !== 'error') {
+    if (
+      prevReport &&
+      prevReport.source_hash === fetched.hash &&
+      (prevReport.status === 'counting' || prevReport.status === 'final')
+    ) {
       console.log(`[${electionCfg.id}] 変更なし（スキップ）`);
       return {
         ...prevReport,
