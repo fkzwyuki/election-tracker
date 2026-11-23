@@ -266,7 +266,7 @@ async function parsePdfWithGemini(pdfBuf, electionCfg) {
     '  ]',
     '}',
     '注意点:',
-    '- 取り消し線が引かれている辞退候補・立候補取消の行は candidates に含めないでください。',
+    '- 取り消し線が引かれている行、または「辞退」「死亡」「立候補取消」「失格」等の注記がある候補者は candidates に含めないでください。',
     '- 合計・無効票・按分切捨票などの集計行は candidates に含めないでください。',
     '- 得票数はカンマなしの数値（按分小数がある場合は小数）にしてください。',
   ].join('\n');
@@ -288,6 +288,9 @@ async function parsePdfWithGemini(pdfBuf, electionCfg) {
     generationConfig: {
       temperature: 0,
       responseMimeType: 'application/json',
+      thinkingConfig: {
+        thinkingBudget: 0,
+      },
     },
   };
 
@@ -297,7 +300,7 @@ async function parsePdfWithGemini(pdfBuf, electionCfg) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(60000),
+      signal: AbortSignal.timeout(120000),
     });
   }
 
@@ -403,6 +406,7 @@ function parseCandidatesFromTables(tables, parserCfg = {}) {
       const rawVotes = row[voteCol];
 
       if (!rawName || /^(合計|計|有効|無効|総計|小計)/.test(rawName)) continue;
+      if (/(辞退|死亡|立候補取消|失格)/.test(row.join(' '))) continue;
       const votes = parseNumber(rawVotes);
       if (votes === null) continue;
 
