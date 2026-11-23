@@ -465,7 +465,8 @@ function buildElectionReport(electionCfg, rawData) {
   } = rawData;
 
   const seats = electionCfg.seats;
-  const totalCandidates = electionCfg.total_candidates || candidates.length;
+  // 開票データ取得後は、辞退・逝去等で除外された実際の有効立候補者数(candidates.length)を優先
+  const totalCandidates = candidates.length > 0 ? candidates.length : electionCfg.total_candidates;
 
   // 得票数降順ソート（同票は元の順序維持）
   const sorted = [...candidates].sort((a, b) => b.votes - a.votes);
@@ -726,7 +727,8 @@ function generateDemoData(config) {
 // メイン処理
 // ---------------------------------------------------------------------------
 
-async function collectSingleElection(electionCfg, prevReport) {
+async function collectSingleElection(electionCfg, prevReport, options = {}) {
+  const { force = false } = options;
   let targetUrl = electionCfg.results_url;
 
   try {
@@ -755,6 +757,7 @@ async function collectSingleElection(electionCfg, prevReport) {
     // 2. 速報ページを取得（差分検知: すでに開票中/確定のHTMLデータ取得済み時のみスキップ）
     const fetched = await fetchHtml(targetUrl, electionCfg.parser?.encoding);
     if (
+      !force &&
       prevReport &&
       prevReport.source_hash === fetched.hash &&
       (prevReport.status === 'counting' || prevReport.status === 'final')
@@ -783,7 +786,7 @@ async function collectSingleElection(electionCfg, prevReport) {
         console.log(`[${electionCfg.id}] 開票速報PDF検出: ${pdfLink.text} -> ${pdfLink.url}`);
         const pdf = await fetchBinary(pdfLink.url);
 
-        if (prevReport && prevReport.source_hash === pdf.hash && prevReport.status !== 'error') {
+        if (!force && prevReport && prevReport.source_hash === pdf.hash && prevReport.status !== 'error') {
           console.log(`[${electionCfg.id}] PDF変更なし（Gemini呼出スキップ）`);
           return {
             ...prevReport,
@@ -857,6 +860,7 @@ async function main() {
   const args = new Set(process.argv.slice(2));
   const isDemo = args.has('--demo');
   const includeAll = args.has('--all');
+  const force = args.has('--force');
 
   const config = JSON.parse(await fs.readFile(CONFIG_PATH, 'utf-8'));
 
@@ -883,7 +887,7 @@ async function main() {
       if (prev) results.push(prev);
       continue;
     }
-    const report = await collectSingleElection(electionCfg, prev);
+    const report = await collectSingleElection(electionCfg, prev, { force });
     results.push(report);
   }
 

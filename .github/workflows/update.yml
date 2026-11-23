@@ -12,6 +12,10 @@ on:
         description: "active=false の選挙も再取得する (true/false)"
         required: false
         default: "false"
+      force_refresh:
+        description: "ハッシュ一致でも強制再解析する（APIキーテスト用）"
+        required: false
+        default: "false"
 
 permissions:
   contents: write
@@ -36,11 +40,14 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
+          ARGS=""
           if [ "${{ github.event.inputs.include_all }}" = "true" ]; then
-            node scripts/collect.mjs --all
-          else
-            node scripts/collect.mjs
+            ARGS="$ARGS --all"
           fi
+          if [ "${{ github.event.inputs.force_refresh }}" = "true" ]; then
+            ARGS="$ARGS --force"
+          fi
+          node scripts/collect.mjs $ARGS
 
       - name: Commit updated data if changed
         run: |
