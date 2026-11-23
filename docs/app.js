@@ -1,11 +1,48 @@
 const DATA_URL = './data/latest.json';
+const PIN_STORAGE_KEY = 'election_tracker_pins_v1';
+
+const PREF_ORDER = [
+  '北海道', '青森県', '岩手県', '宮城県', '秋田県', '山形県', '福島県',
+  '茨城県', '栃木県', '群馬県', '埼玉県', '千葉県', '東京都', '神奈川県',
+  '新潟県', '富山県', '石川県', '福井県', '山梨県', '長野県', '岐阜県',
+  '静岡県', '愛知県', '三重県', '滋賀県', '京都府', '大阪府', '兵庫県',
+  '奈良県', '和歌山県', '鳥取県', '島根県', '岡山県', '広島県', '山口県',
+  '徳島県', '香川県', '愛媛県', '高知県', '福岡県', '佐賀県', '長崎県',
+  '熊本県', '大分県', '宮崎県', '鹿児島県', '沖縄県',
+];
+
+function getPrefRank(pref) {
+  const idx = PREF_ORDER.indexOf(pref);
+  return idx === -1 ? 999 : idx;
+}
+
+function loadPinnedIds() {
+  try {
+    const raw = localStorage.getItem(PIN_STORAGE_KEY);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw);
+    return new Set(Array.isArray(arr) ? arr : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function savePinnedIds(set) {
+  try {
+    localStorage.setItem(PIN_STORAGE_KEY, JSON.stringify([...set]));
+  } catch {
+    // ignore storage quota/privacy errors
+  }
+}
 
 let state = {
   payload: null,
   selectedEventId: 'TODAY',
+  statusFilter: 'all', // 'all' | 'counting' | 'final'
   initializedSelection: false,
   query: '',
   expandedIds: new Set(),
+  pinnedIds: loadPinnedIds(),
 };
 
 /**
@@ -199,10 +236,10 @@ function getElectionMascots(election) {
   const progress = election.progress_pct ?? 0;
   const isFinal = election.status === 'final' || progress >= 100;
 
-  // 開票率100%（確定）: 全員当選なら万歳、そうでなければ拍手
+  // 開票率100%（確定）: 1人以上当選なら万歳、0人当選なら拍手
   if (isFinal) {
-    if (total > 0 && c.confirmed === total) {
-      return [{ src: './assets/usagi-banzai.png', alt: 'こくみんうさぎ（全員当選・万歳）' }];
+    if (c.confirmed > 0) {
+      return [{ src: './assets/usagi-banzai.png', alt: 'こくみんうさぎ（当選・万歳）' }];
     }
     return [{ src: './assets/usagi-clap.png', alt: 'こくみんうさぎ（拍手）' }];
   }
@@ -343,7 +380,7 @@ function renderBattleSummaryBox(election) {
   `;
 }
 
-function renderElectionCard(e) {
+function renderElectionCard(e, showPinButton = false) {
   const progressText = e.progress_pct !== null && e.progress_pct !== undefined ? `${e.progress_pct}%` : '--';
   const progressWidth = e.progress_pct !== null && e.progress_pct !== undefined ? Math.min(100, Math.max(0, e.progress_pct)) : 0;
   const remainingText =
@@ -352,6 +389,7 @@ function renderElectionCard(e) {
       : '--';
 
   const isExpanded = state.expandedIds.has(e.id);
+  const isPinned = state.pinnedIds.has(e.id);
   const watchCount = (e.watched_summaries || []).length;
   const watchedHtml = isExpanded
     ? (e.watched_summaries || []).map((w) => renderWatchedCandidate(w, e)).join('')
@@ -361,8 +399,12 @@ function renderElectionCard(e) {
     .map((m) => `<img src="${m.src}" alt="${escapeHtml(m.alt)}" class="election-mascot">`)
     .join('');
 
+  const pinBtnHtml = showPinButton
+    ? `<button type="button" class="pin-btn ${isPinned ? 'is-pinned' : ''}" data-pin-id="${escapeHtml(e.id)}" title="${isPinned ? 'ピン留め解除' : '最上部にピン留め'}" aria-label="ピン留め">${isPinned ? '★' : '☆'}</button>`
+    : '';
+
   return `
-    <article class="election-card">
+    <article class="election-card ${e.status === 'final' ? 'card-final' : ''}">
       <div class="election-head">
         <div class="election-title-row">
           <div class="election-title-left">
@@ -374,7 +416,10 @@ function renderElectionCard(e) {
               </p>
             </div>
           </div>
-          ${statusBadge(e.status)}
+          <div class="title-right-actions">
+            ${pinBtnHtml}
+            ${statusBadge(e.status)}
+          </div>
         </div>
 
         <div class="kpi-grid">
@@ -429,13 +474,60 @@ function renderElectionCard(e) {
   `;
 }
 
+function sortElections(list) {
+  return [...list].sort((a, b) => {
+    // 1. ピン留め最優先
+    const ap = state.pinnedIds.has(a.id) ? 0 : 1;
+    const bp = state.pinnedIds.has(b.id) ? 0 : 1;
+    if (ap !== bp) return ap - bp;
+
+    // 2. 未確定を上段、確定済み(final)を下段
+    const af = a.status === 'final' ? 1 : 0;
+    const bf = b.status === 'final' ? 1 : 0;
+    if (af !== bf) return af - bf;
+
+    // 3. 都道府県コード順（北→南）＞ 自治体名順で固定
+    const prefDiff = getPrefRank(a.prefecture) - getPrefRank(b.prefecture);
+    if (prefDiff !== 0) return prefDiff;
+    return (a.municipality || a.name || '').localeCompare(b.municipality || b.name || '', 'ja');
+  });
+}
+
+function renderStatusFilterBar(baseList) {
+  const totalCount = baseList.length;
+  const countingCount = baseList.filter((e) => e.status !== 'final').length;
+  const finalCount = baseList.filter((e) => e.status === 'final').length;
+
+  const chips = [
+    { id: 'all', label: `すべて (${totalCount})` },
+    { id: 'counting', label: `未確定のみ (${countingCount})` },
+    { id: 'final', label: `確定済み (${finalCount})` },
+  ];
+
+  return `
+    <div class="status-filter-bar" role="tablist" aria-label="開票状況絞り込み">
+      ${chips
+        .map(
+          (c) => `
+            <button
+              type="button"
+              class="filter-chip ${state.statusFilter === c.id ? 'is-active' : ''}"
+              data-status-filter="${c.id}"
+            >${c.label}</button>
+          `
+        )
+        .join('')}
+    </div>
+  `;
+}
+
 function render() {
   const app = document.getElementById('app');
   if (!state.payload) return;
 
   const targetDate = getTargetElectionDateJst();
   const q = state.query.trim().toLowerCase();
-  const filtered = (state.payload.elections || []).filter((e) => {
+  const baseList = (state.payload.elections || []).filter((e) => {
     if (state.selectedEventId === 'TODAY') {
       if (e.election_date !== targetDate) return false;
     } else if (state.selectedEventId !== 'ALL' && e.event_id !== state.selectedEventId) {
@@ -453,7 +545,7 @@ function render() {
     return hay.includes(q);
   });
 
-  if (filtered.length === 0) {
+  if (baseList.length === 0) {
     app.innerHTML =
       state.selectedEventId === 'TODAY'
         ? `<div class="empty-box">本日（${escapeHtml(targetDate)}）の開票対象選挙はありません。<br>上のプルダウンから過去の選挙イベントを選択できます。</div>`
@@ -461,7 +553,23 @@ function render() {
     return;
   }
 
-  app.innerHTML = filtered.map(renderElectionCard).join('');
+  const showMultiControls = baseList.length >= 2;
+  const filtered = sortElections(
+    baseList.filter((e) => {
+      if (!showMultiControls || state.statusFilter === 'all') return true;
+      if (state.statusFilter === 'counting') return e.status !== 'final';
+      if (state.statusFilter === 'final') return e.status === 'final';
+      return true;
+    })
+  );
+
+  const filterBarHtml = showMultiControls ? renderStatusFilterBar(baseList) : '';
+  const cardsHtml =
+    filtered.length > 0
+      ? filtered.map((e) => renderElectionCard(e, showMultiControls)).join('')
+      : '<div class="empty-box">この条件に該当する選挙はありません。</div>';
+
+  app.innerHTML = filterBarHtml + cardsHtml;
 }
 
 function populateEvents(events) {
@@ -526,6 +634,7 @@ async function loadData() {
 document.getElementById('reload-btn').addEventListener('click', loadData);
 document.getElementById('event-select').addEventListener('change', (ev) => {
   state.selectedEventId = ev.target.value;
+  state.statusFilter = 'all';
   render();
 });
 document.getElementById('search-input').addEventListener('input', (ev) => {
@@ -533,6 +642,24 @@ document.getElementById('search-input').addEventListener('input', (ev) => {
   render();
 });
 document.getElementById('app').addEventListener('click', (ev) => {
+  const filterBtn = ev.target.closest('[data-status-filter]');
+  if (filterBtn) {
+    state.statusFilter = filterBtn.getAttribute('data-status-filter');
+    render();
+    return;
+  }
+  const pinBtn = ev.target.closest('[data-pin-id]');
+  if (pinBtn) {
+    const pinId = pinBtn.getAttribute('data-pin-id');
+    if (state.pinnedIds.has(pinId)) {
+      state.pinnedIds.delete(pinId);
+    } else {
+      state.pinnedIds.add(pinId);
+    }
+    savePinnedIds(state.pinnedIds);
+    render();
+    return;
+  }
   if (ev.target.closest('[data-open-criteria]')) {
     document.getElementById('criteria-modal').classList.remove('hidden');
     return;

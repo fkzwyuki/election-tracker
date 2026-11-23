@@ -145,6 +145,51 @@ body {
   border: 1px solid var(--border);
 }
 
+.status-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filter-chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: var(--text);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.filter-chip.is-active {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+}
+
+.title-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.pin-btn {
+  border: none;
+  background: transparent;
+  font-size: 1.15rem;
+  line-height: 1;
+  padding: 2px 4px;
+  cursor: pointer;
+  color: #94a3b8;
+}
+
+.pin-btn.is-pinned {
+  color: #d97706;
+}
+
 .election-card {
   background: var(--card);
   border-radius: var(--radius);
