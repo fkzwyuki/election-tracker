@@ -182,14 +182,20 @@ function classifyCandidateBattle(w, election) {
     return inSeats ? 'confirmed' : 'outside';
   }
 
-  // 序盤の丸め誤差による誤当確を防ぐため、開票率50%以上かつ1.15倍の安全マージンで判定
+  // 鳩の巣原理: 下位の逆転必要人数全員が追いつくための合計票数(votes_needed_to_lose)が
+  // 残り見込み票×1.15 を超えていれば数学的に落選不可能（旧JSONは diff_from_cutoff にフォールバック）
+  const clinchMargin =
+    w.votes_needed_to_lose !== null && w.votes_needed_to_lose !== undefined
+      ? w.votes_needed_to_lose
+      : w.diff_from_cutoff;
+
   if (
     inSeats &&
     progress >= 50 &&
     rem !== null &&
     rem !== undefined &&
-    w.diff_from_cutoff !== null &&
-    w.diff_from_cutoff > rem * 1.15
+    clinchMargin !== null &&
+    clinchMargin > rem * 1.15
   ) {
     return 'confirmed';
   }
@@ -342,7 +348,7 @@ function summarizeBattle(election) {
 }
 
 const CRITERIA_TOOLTIP =
-  '当確: 確定で定数内、または開票率50%以上かつ次点との差＞残り見込み票×1.15 / 見込み〇: 定数内で余裕あり / 当落線上: 定数付近の接戦 / 圏外: 定数外（クリックで詳細）';
+  '当確: 確定で定数内、または開票率50%以上で逆転に必要な下位候補合計票数＞残り見込み票×1.15 / 見込み〇: 定数内で余裕あり / 当落線上: 定数付近の接戦 / 圏外: 定数外（クリックで詳細）';
 
 function renderBattleSummaryBox(election) {
   const total = (election.watched_summaries || []).length;

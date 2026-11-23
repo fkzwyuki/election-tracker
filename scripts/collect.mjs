@@ -585,6 +585,7 @@ function buildElectionReport(electionCfg, rawData) {
         votes: null,
         zone: 'unknown', // 'safe' | 'borderline' | 'outside' | 'unknown'
         diff_from_cutoff: null,
+        votes_needed_to_lose: null,
         cutoff_label: null,
         surrounding: [],
       };
@@ -593,6 +594,7 @@ function buildElectionReport(electionCfg, rawData) {
     const me = ranked[idx];
     const inSeats = me.rank <= seats;
     let diffFromCutoff = null;
+    let votesNeededToLose = null;
     let cutoffLabel = null;
     let zone = 'unknown';
 
@@ -601,6 +603,12 @@ function buildElectionReport(electionCfg, rawData) {
         diffFromCutoff = Math.round((me.votes - runnerUpVotes) * 1000) / 1000;
         cutoffLabel = `次点(${seats + 1}位)との差`;
         zone = diffFromCutoff > 0 ? 'safe' : 'borderline';
+        // 鳩の巣原理: 自分が定数外へ落ちるために必要な「下位(seats - idx)人全員が自分に追いつく票数合計」
+        let sumNeeded = 0;
+        for (let j = idx + 1; j <= seats && j < ranked.length; j++) {
+          sumNeeded += Math.max(0, me.votes - ranked[j].votes);
+        }
+        votesNeededToLose = Math.round(sumNeeded);
       } else {
         zone = 'safe';
       }
@@ -637,6 +645,7 @@ function buildElectionReport(electionCfg, rawData) {
       votes: me.votes,
       zone,
       diff_from_cutoff: diffFromCutoff,
+      votes_needed_to_lose: votesNeededToLose,
       cutoff_label: cutoffLabel,
       surrounding,
     };
