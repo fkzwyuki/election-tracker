@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-22T14:24:41.540Z",
+  "generated_at": "2026-11-23T00:35:28.079Z",
   "mode": "live",
   "party": {
     "name": "国民民主党",
@@ -35,10 +35,10 @@
       "portal_url": "https://www.city.tottori.lg.jp/page/42131.html",
       "source_url": "https://www.city.tottori.lg.jp/uploaded/attachment/55161.pdf",
       "source_hash": "f4d1b3ce6ffe2cadc102b19f47e31139b68093dc98e795e7e67960b80d159d5f",
-      "status": "final",
-      "error_message": null,
+      "status": "error",
+      "error_message": "最新取得に失敗（前回値を表示中）: The operation was aborted due to timeout",
       "official_updated_at": "23:10 確定",
-      "fetched_at": "2026-11-22T14:24:41.540Z",
+      "fetched_at": "2026-11-23T00:35:28.079Z",
       "progress_pct": 100,
       "counted_votes": 58594.99700000001,
       "total_votes_cast": 59760,
