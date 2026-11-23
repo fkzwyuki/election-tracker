@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-23T00:49:23.645Z",
+  "generated_at": "2026-11-23T01:02:01.438Z",
   "mode": "live",
   "party": {
     "name": "国民民主党",
@@ -36,9 +36,9 @@
       "source_url": "https://www.city.tottori.lg.jp/uploaded/attachment/55161.pdf",
       "source_hash": "f4d1b3ce6ffe2cadc102b19f47e31139b68093dc98e795e7e67960b80d159d5f",
       "status": "error",
-      "error_message": "最新取得に失敗（前回値を表示中）: Gemini API HTTP 503 (gemini-flash-latest): {\n  \"error\": {\n    \"code\": 503,\n    \"message\": \"This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.\",\n    \"status\": \"UNAVAILABLE\"\n  }\n}\n",
+      "error_message": "最新取得に失敗（前回値を表示中）: Gemini API HTTP 429 (gemini-omni-1.2-flash): {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://aistudio.google.com/do",
       "official_updated_at": "23:10 確定",
-      "fetched_at": "2026-11-23T00:49:23.645Z",
+      "fetched_at": "2026-11-23T01:02:01.438Z",
       "progress_pct": 100,
       "counted_votes": 58594.99700000001,
       "total_votes_cast": 59760,
