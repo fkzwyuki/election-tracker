@@ -216,12 +216,12 @@ async function fetchBinary(url) {
   return { buf, hash, finalUrl: res.url };
 }
 
-async function discoverAvailableFlashModel(apiKey) {
+async function discoverAvailableFlashModels(apiKey) {
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`,
     { signal: AbortSignal.timeout(15000) }
   );
-  if (!res.ok) return null;
+  if (!res.ok) return [];
   const data = await res.json();
   const candidates = (data.models || [])
     .filter(
@@ -233,7 +233,6 @@ async function discoverAvailableFlashModel(apiKey) {
     )
     .map((m) => m.name.replace(/^models\//, ''));
 
-  if (candidates.length === 0) return null;
   // バージョン番号が大きい最新Flashを優先（liteより通常版を優先）
   candidates.sort((a, b) => {
     const aLite = /lite/i.test(a) ? 1 : 0;
@@ -241,7 +240,11 @@ async function discoverAvailableFlashModel(apiKey) {
     if (aLite !== bLite) return aLite - bLite;
     return b.localeCompare(a, undefined, { numeric: true });
   });
-  return candidates[0];
+  return candidates;
+}
+
+async function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function parsePdfWithGemini(pdfBuf, electionCfg) {
@@ -249,8 +252,6 @@ async function parsePdfWithGemini(pdfBuf, electionCfg) {
   if (!apiKey) {
     throw new Error('画像PDFを検出しましたが GEMINI_API_KEY が未設定です（GitHub Secretsに設定してください）');
   }
-
-  let model = process.env.GEMINI_MODEL || 'gemini-flash-latest';
 
   const prompt = [
     `これは日本の地方選挙（${electionCfg.name}）の開票速報PDFです。`,
@@ -271,53 +272,103 @@ async function parsePdfWithGemini(pdfBuf, electionCfg) {
     '- 得票数はカンマなしの数値（按分小数がある場合は小数）にしてください。',
   ].join('\n');
 
-  const body = {
-    contents: [
-      {
-        parts: [
-          {
-            inline_data: {
-              mime_type: 'application/pdf',
-              data: pdfBuf.toString('base64'),
-            },
-          },
-          { text: prompt },
-        ],
-      },
-    ],
-    generationConfig: {
+  function buildBody(withThinkingBudgetZero) {
+    const generationConfig = {
       temperature: 0,
       responseMimeType: 'application/json',
-      thinkingConfig: {
-        thinkingBudget: 0,
-      },
-    },
-  };
+    };
+    if (withThinkingBudgetZero) {
+      generationConfig.thinkingConfig = { thinkingBudget: 0 };
+    }
+    return {
+      contents: [
+        {
+          parts: [
+            {
+              inline_data: {
+                mime_type: 'application/pdf',
+                data: pdfBuf.toString('base64'),
+              },
+            },
+            { text: prompt },
+          ],
+        },
+      ],
+      generationConfig,
+    };
+  }
 
-  async function callModel(targetModel) {
+  async function callModel(targetModel, withThinkingBudgetZero = true) {
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${encodeURIComponent(apiKey)}`;
     return fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(120000),
+      body: JSON.stringify(buildBody(withThinkingBudgetZero)),
+      signal: AbortSignal.timeout(90000),
     });
   }
 
-  let res = await callModel(model);
-  if (res.status === 404) {
-    const discovered = await discoverAvailableFlashModel(apiKey);
-    if (discovered && discovered !== model) {
-      console.log(`[${electionCfg.id}] モデル切替: ${model} -> ${discovered}`);
-      model = discovered;
-      res = await callModel(model);
+  // 試行するモデル候補（無料枠の503混雑・404非対応に備えて自動フォールバック）
+  const initialModels = [
+    process.env.GEMINI_MODEL || 'gemini-flash-latest',
+    'gemini-flash-lite-latest',
+  ];
+  const tried = new Set();
+  const queue = [...new Set(initialModels)];
+  let discoveredLoaded = false;
+  let lastError = '';
+  let res = null;
+  let usedModel = '';
+
+  while (queue.length > 0 && tried.size < 4) {
+    const model = queue.shift();
+    if (!model || tried.has(model)) continue;
+    tried.add(model);
+
+    try {
+      let attempt = await callModel(model, true);
+
+      // thinkingConfig非対応モデル(400)の場合はフラグを外して即リトライ
+      if (attempt.status === 400) {
+        const errBody = await attempt.text();
+        if (/thinking/i.test(errBody)) {
+          console.log(`[${electionCfg.id}] ${model} は thinkingBudget 非対応のため通常モードで再試行`);
+          attempt = await callModel(model, false);
+        } else {
+          lastError = `Gemini API HTTP 400 (${model}): ${errBody.slice(0, 200)}`;
+          continue;
+        }
+      }
+
+      if (attempt.ok) {
+        res = attempt;
+        usedModel = model;
+        break;
+      }
+
+      const errText = await attempt.text();
+      lastError = `Gemini API HTTP ${attempt.status} (${model}): ${errText.slice(0, 200)}`;
+      console.log(`[${electionCfg.id}] ${model} 失敗 (HTTP ${attempt.status}) -> 別モデルへフォールバック`);
+
+      if ((attempt.status === 404 || attempt.status === 503 || attempt.status === 429) && !discoveredLoaded) {
+        discoveredLoaded = true;
+        const discovered = await discoverAvailableFlashModels(apiKey);
+        for (const d of discovered) {
+          if (!tried.has(d) && !queue.includes(d)) queue.push(d);
+        }
+      }
+      await sleep(2500);
+    } catch (e) {
+      lastError = `Gemini API error (${model}): ${e.message}`;
+      console.log(`[${electionCfg.id}] ${model} 通信エラー (${e.message}) -> 別モデルへフォールバック`);
+      await sleep(2000);
     }
   }
 
-  if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`Gemini API HTTP ${res.status} (${model}): ${errText.slice(0, 200)}`);
+  if (!res) {
+    throw new Error(lastError || 'Gemini API のすべてのフォールバックモデルで失敗しました');
   }
+  console.log(`[${electionCfg.id}] Gemini モデル使用: ${usedModel}`);
 
   const json = await res.json();
   const rawText = json?.candidates?.[0]?.content?.parts?.[0]?.text || '';

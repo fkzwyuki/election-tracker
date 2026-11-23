@@ -20,6 +20,7 @@ const DEFAULT_DATA_URL = 'https://election-tracker-dpfp.pages.dev/data/latest.js
 function triggerElectionUpdate() {
   const now = new Date();
   const jstHour = Number(Utilities.formatDate(now, 'Asia/Tokyo', 'H'));
+  const jstMin = Number(Utilities.formatDate(now, 'Asia/Tokyo', 'm'));
 
   // 1. 開票時間帯（20:00〜翌2:59）以外は通信すらせず即スキップ
   const isCountingHours = jstHour >= 20 || jstHour <= 2;
@@ -28,14 +29,21 @@ function triggerElectionUpdate() {
     return;
   }
 
-  // 2. 判定対象の投開票日（0:00〜2:59は前日の選挙が継続中とみなす）
+  // 2. ピーク時間帯（21:00〜23:59）は5分おき毎回実行、それ以外（20時台・0〜2時台）は15分おきに間引き
+  const isPeakHours = jstHour >= 21 && jstHour <= 23;
+  if (!isPeakHours && (jstMin % 15) >= 5) {
+    Logger.log('非ピーク帯（15分間隔）のためスキップしました (JST ' + jstHour + ':' + jstMin + ')');
+    return;
+  }
+
+  // 3. 判定対象の投開票日（0:00〜2:59は前日の選挙が継続中とみなす）
   const baseDate = new Date(now.getTime());
   if (jstHour <= 2) {
     baseDate.setDate(baseDate.getDate() - 1);
   }
   const targetDate = Utilities.formatDate(baseDate, 'Asia/Tokyo', 'yyyy-MM-dd');
 
-  // 3. 公開サイトの latest.json を確認し、本日分の未確定選挙があるかチェック
+  // 4. 公開サイトの latest.json を確認し、本日分の未確定選挙があるかチェック
   if (!hasPendingElectionOnDate(targetDate)) {
     Logger.log(targetDate + ' の未確定選挙がないためスキップしました');
     return;
