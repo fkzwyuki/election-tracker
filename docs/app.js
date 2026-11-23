@@ -481,12 +481,16 @@ function sortElections(list) {
     const bp = state.pinnedIds.has(b.id) ? 0 : 1;
     if (ap !== bp) return ap - bp;
 
-    // 2. 未確定を上段、確定済み(final)を下段
+    // 2. 投開票日 降順（新しい選挙を常に上へ）
+    const dateDiff = (b.election_date || '').localeCompare(a.election_date || '');
+    if (dateDiff !== 0) return dateDiff;
+
+    // 3. 同日内: 未確定を上段、確定済み(final)を下段
     const af = a.status === 'final' ? 1 : 0;
     const bf = b.status === 'final' ? 1 : 0;
     if (af !== bf) return af - bf;
 
-    // 3. 都道府県コード順（北→南）＞ 自治体名順で固定
+    // 4. 同日・同ステータス内: 都道府県コード順（北→南）＞ 自治体名順で固定
     const prefDiff = getPrefRank(a.prefecture) - getPrefRank(b.prefecture);
     if (prefDiff !== 0) return prefDiff;
     return (a.municipality || a.name || '').localeCompare(b.municipality || b.name || '', 'ja');
